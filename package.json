@@ -12,7 +12,12 @@
   "dependencies": {
     "axios": "^0.22.0",
     "csv-parse": "^4.16.3",
-    "csv-parser": "^3.0.0",
+    "csv-parser": "^3.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^4.0.0",
     "prettier": "^2.4.1"
   }
 }

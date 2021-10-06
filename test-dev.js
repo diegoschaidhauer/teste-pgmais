@@ -1,104 +1,89 @@
 const fs = require('fs');
-const parse = require('csv-parse');
+const csv = require('csv-parse');
 const axios = require('axios')
- 
-const inputFile='arquivo.csv';
+
+
+const inputFile = 'arquivo.csv';
 const saveElements = []
+
+// aqui lê o arquivo e faz o parse, utilizando como delimitador o ';'
+const parse = csv({ delimiter: ';' }, function (err, data) {
+    try {
+        dataManipulation(data)
+    } catch (error) {
+        console.log('Erro ao efetuar parse', error);
+    }
+});
+
+function dataManipulation(data) {
+    data.forEach(async function (dataInfo) {
+        const data = {
+            "id_msg": dataInfo[0],
+            "DDD": dataInfo[1],
+            "celular": dataInfo[2],
+            "operadora": dataInfo[3],
+            "horario": dataInfo[4],
+            "mensagem": dataInfo[5],
+        };
+
+        const phone = data.DDD + data.celular
+        const verifyPhone = /^[2-9][1-9]9[6-9][0-9]{3}[0-9]{4}$/.test(phone)
+        data['phone'] = phone
+
+        //Verificação de Blacklist
+        const statusCode = await consultBlacklist(phone)
+        if (statusCode == 200) return
+
+        //Verificação do horário abaixo de '19:59:59', msg menor que 140 caracteres e regras do telefone e região
+        const time = data.horario
+        if (!verifyPhone || time > '19:59:59' || data.mensagem.length >= 140) return
+
+        //Verificação de id_broker
+        let id_broker
+        if (data.operadora == 'VIVO' || data.operadora == 'TIM') {
+            id_broker = 1
+        } else if (data.operadora == 'CLARO' || data.operadora == 'OI') {
+            id_broker = 2
+        } else {
+            id_broker = 3
+        }
+
+        console.log(data);
+        //Verificação de mensagem/horario para o mesmo numero
+        let retorno = verifyElement(data)
+
+        //Resultado final de: id_msg + id_broker
+        //console.log(data.id_msg, id_broker);
+    });
+}
 
 async function consultBlacklist(phone) {
     let status
     await axios.get(`https://front-test-pg.herokuapp.com/blacklist/${phone}`)
-    .then(function (response) {
-        status = response.status
-    })
-    .catch(function (error) {
-      
-        status = error.response.status
-       
-    });
+        .then(function (response) {
+            status = response.status
+        })
+        .catch(function (error) {
+            status = error.response.status
+        });
     return status
 }
 
-function verifyElement(data){
-   
-          if(saveElements.length > 0){
-             
-          for (let i = 0; i < saveElements.length ; i++) {
-                if(data.phone == saveElements[i].phone){
-                    
-                    console.log('CONDIÇÃO DO IFFFFFFF', data.horario < saveElements[i].horario)                  
-                    if(data.horario > saveElements[i].horario){    
-                        console.log('QUANTAS VEZES PASSOU NO ==========IF')                  
-                        data = saveElements[i]
-                    }
+function verifyElement(data) {
+    if (saveElements.length > 0) {
+        for (let i = 0; i < saveElements.length; i++) {
+            if (data.phone == saveElements[i].phone) {
+                if (data.horario > saveElements[i].horario) {
+                    data = saveElements[i]
                 }
             }
-            saveElements.push(data)
-          }
-        
-         console.log(data, 'DATTTAAAAA NA FUNÇÃO');
-          
-          return data
-
+        }
+        saveElements.push(data)
+    }
+    return data
 }
 
- 
-// aqui lê o arquivo e faz o parse, utilizando como delimitador o ';'
-const parser = parse({delimiter: ';'}, function (err, data) {
-    // create country object out of parsed fields
-    data.forEach(async function(line) {
-     const data = { "id_msg" : line[0],
-                     "DDD" : line[1],
-                     "celular" : line[2],
-                     "operadora" : line[3],
-                     "horario" : line[4],
-                     "mensagem" : line[5],
-                    };
-     
-                    console.log('=================DATA INICIAL', data);
-     let phone = data.DDD + data.celular
-     data['phone'] = phone
-     let hora = data.horario 
-     let id_broker
-     let verificadorCel = /^[2-9][1-9]9[6-9][0-9]{3}[0-9]{4}$/.test(phone)  
-     let status = await consultBlacklist(phone)
-     if(status == 200){
-       
-        return
-     }
-     if(!verificadorCel || hora > '19:59:59' || data.mensagem.length >= 140){
-        return
-     }
-
-     if(data.operadora == 'VIVO' || data.operadora == 'TIM'){
-        id_broker = 1
-     }else if(data.operadora == 'CLARO' || data.operadora == 'OI'){
-         id_broker = 2               
-     }else{        
-         id_broker = 3
-     }
-
-     let retorno = verifyElement(data)
-
-    // console.log('=================DATA final', retorno);
+// Lê o arquivo de entrada e aplica a função de manipulação
+fs.createReadStream(inputFile).pipe(parse);
 
 
-
-     //console.log(JSON.stringify(data));
-
-     //console.log(data.id_msg, id_broker);
-
-    
-   
-               
-   
-
-    // console.log(hora);
-    });   
-});
- 
-// read the inputFile, feed the contents to the parser
-fs.createReadStream(inputFile).pipe(parser);
-
-
-    
