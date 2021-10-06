@@ -25,9 +25,10 @@ function dataManipulation(data) {
             "horario": dataInfo[4],
             "mensagem": dataInfo[5],
         };
+        console.log('Dado Inicial:\n', data);
 
         const phone = data.DDD + data.celular
-        const verifyPhone = /^[2-9][1-9]9[6-9][0-9]{3}[0-9]{4}$/.test(phone)
+        const verifyPhone = /^[2-9][1-9]9[7-9][0-9]{3}[0-9]{4}$/.test(phone)
         data['phone'] = phone
 
         //Verificação de Blacklist
@@ -48,12 +49,11 @@ function dataManipulation(data) {
             id_broker = 3
         }
 
-        console.log(data);
         //Verificação de mensagem/horario para o mesmo numero
-        let retorno = verifyElement(data)
+        const validData = checkRepeatedPhone(data)
+        if (validData == undefined) return
 
-        //Resultado final de: id_msg + id_broker
-        //console.log(data.id_msg, id_broker);
+        console.log('Dado final:\n', `${validData.id_msg};${id_broker}`);
     });
 }
 
@@ -69,18 +69,20 @@ async function consultBlacklist(phone) {
     return status
 }
 
-function verifyElement(data) {
+function checkRepeatedPhone(data) {
     if (saveElements.length > 0) {
         for (let i = 0; i < saveElements.length; i++) {
-            if (data.phone == saveElements[i].phone) {
+            if (data.phone === saveElements[i].phone) {
                 if (data.horario > saveElements[i].horario) {
                     data = saveElements[i]
+                } else {
+                    data = data
                 }
             }
         }
-        saveElements.push(data)
+        return data
     }
-    return data
+    saveElements.push(data)
 }
 
 // Lê o arquivo de entrada e aplica a função de manipulação
