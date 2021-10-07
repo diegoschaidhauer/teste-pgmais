@@ -15,6 +15,7 @@ const parse = csv({ delimiter: ';' }, function (err, data) {
     }
 });
 
+//Cria os objeto, executa as outras funções e verificaçoes simples
 function dataManipulation(data) {
     data.forEach(async function (dataInfo) {
         const data = {
@@ -28,10 +29,11 @@ function dataManipulation(data) {
         console.log('Dado Inicial:\n', data);
 
         const phone = data.DDD + data.celular
+        //Expressão regular para determinar regras para os telefones
         const verifyPhone = /^[2-9][1-9]9[7-9][0-9]{3}[0-9]{4}$/.test(phone)
         data['phone'] = phone
 
-        //Verificação de Blacklist
+        //Chamada para verificação de Blacklist
         const statusCode = await consultBlacklist(phone)
         if (statusCode == 200) return
 
@@ -49,14 +51,16 @@ function dataManipulation(data) {
             id_broker = 3
         }
 
-        //Verificação de mensagem/horario para o mesmo numero
+        //Chamada da verificação de mensagem/horario para o mesmo numero
         const validData = checkRepeatedPhone(data)
+        // console.log(validData);
         if (validData == undefined) return
 
-        console.log('Dado final:\n', `${validData.id_msg};${id_broker}`);
+        console.log('Dado final:\n', `${data.id_msg};${id_broker}`);
     });
 }
 
+//Verfica se o telefone está na blackllist
 async function consultBlacklist(phone) {
     let status
     await axios.get(`https://front-test-pg.herokuapp.com/blacklist/${phone}`)
@@ -68,7 +72,7 @@ async function consultBlacklist(phone) {
         });
     return status
 }
-
+// Verifica se existe mais de uma mensagem para o mesmo numero e retonar a com menos horario
 function checkRepeatedPhone(data) {
     if (saveElements.length > 0) {
         for (let i = 0; i < saveElements.length; i++) {
@@ -77,10 +81,12 @@ function checkRepeatedPhone(data) {
                     data = saveElements[i]
                 } else {
                     data = data
+
                 }
             }
         }
         return data
+
     }
     saveElements.push(data)
 }
